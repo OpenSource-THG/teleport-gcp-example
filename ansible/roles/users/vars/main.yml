@@ -1,0 +1,6 @@
+ssh_users:
+  - name: andersonl
+    key: "{{ lookup('file', 'andersonl.pub') }}"
+  - name: jacksonk
+    key: "{{ lookup('file', 'jacksonk.pub') }}"
+group_name: devs

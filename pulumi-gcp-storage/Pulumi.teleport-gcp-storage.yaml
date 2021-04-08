@@ -1,0 +1,3 @@
+config:
+  gcp:project: "<your gcp project id>"
+  gcp:region: "europe-west2"

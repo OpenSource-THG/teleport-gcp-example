@@ -1,0 +1,47 @@
+---
+
+  - name: Install google cloud storage
+    command: pip install --upgrade google-cloud-storage
+
+  - name: Copy cloud storage access python
+    copy:
+      src: fetch-license.py
+      dest: /tmp/fetch-license.py
+      mode: '0755'
+
+  - name: Copy cloud storage access shell
+    copy:
+      src: fetch-license.sh
+      dest: /tmp/fetch-license.sh
+      mode: '0755'
+
+  - name: Fetch license from google cloud storage
+    command: /tmp/fetch-license.sh
+
+  - name: Install the package pwgen
+    apt:
+      name: pwgen
+      state: present
+
+  - name: fetch teleport .deb
+    command: curl https://get.gravitational.com/teleport-ent_{{ teleport_version }}_amd64.deb --output /tmp/teleport-ent_{{ teleport_version }}_amd64.deb
+
+  - name: Install teleport
+    command: dpkg -i /tmp/teleport-ent_{{ teleport_version }}_amd64.deb
+
+  - name: Copy teleport config file
+    template:
+      src: teleport-{{ teleport_role }}.yaml.j2
+      dest: /etc/teleport.yaml
+
+  - name: Copy systemd file
+    template:
+      src: teleport.service.j2
+      dest: /etc/systemd/system/teleport.service
+
+  - name: Enable teleport
+    service:
+      daemon_reload: yes
+      name: teleport
+      state: restarted
+      enabled: yes

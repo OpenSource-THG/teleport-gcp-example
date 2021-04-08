@@ -1,0 +1,40 @@
+teleport:
+  nodename: 
+  data_dir: /var/lib/teleport
+  auth_servers:
+    - 0.0.0.0:3025
+  log:
+    severity: INFO
+  storage:
+    type: firestore
+    collection_name: teleport-cluster-data
+    credentials_path: /var/lib/teleport/gcs_creds.json
+    project_id: {{ gcp_project_id }}
+    audit_events_uri: 'firestore://events?projectID={{ gcp_project_id }}&credentialsPath=/var/lib/teleport/gcs_creds.json'
+    audit_sessions_uri: 'gs://teleport-session-storage?projectID={{ gcp_project_id }}&credentialsPath=/var/lib/teleport/gcs_creds.json'
+
+auth_service:
+  enabled: true
+  cluster_name: "teleport-gcp"
+  listen_addr: 0.0.0.0:3025
+  public_addr:
+    - teleport-gcp.{{ domain }}:3025
+  tokens:
+    - proxy,node,app:{{ auth_token }}
+    - trusted_cluster:{{ cluster_token }}
+ssh_service:
+  enabled: true
+  labels:
+    env: teleport-gcp
+app_service:
+  enabled: true
+  debug_app: true
+proxy_service:
+  enabled: true
+  listen_addr: 0.0.0.0:3023
+  web_listen_addr: 0.0.0.0:3080
+  tunnel_listen_addr: 0.0.0.0:3024
+  public_addr: teleport-gcp.{{ domain }}:3080
+  https_keypairs:
+    - key_file: /etc/letsencrypt/live/teleport-gcp.{{ domain }}/privkey.pem
+      cert_file: /etc/letsencrypt/live/teleport-gcp.{{ domain }}/fullchain.pem

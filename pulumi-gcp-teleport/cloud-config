@@ -1,0 +1,61 @@
+#cloud-config
+write_files:
+
+  - path: /etc/profile.d/thg-env-vars.sh
+    content: |
+      export GITHUB_API_TOKEN=${github_api_token}
+    owner: root:root
+    permissions: '0644'
+
+  - path: /var/lib/teleport/gcs_creds.json
+    encoding: b64
+    content: ${private_key_json}
+    owner: root:root
+    permissions: '0600'
+
+  - path: /etc/letsencrypt/live/teleport-gcp.thgaccess.com/privkey.pem
+    encoding: b64
+    content: ${pem}
+    owner: root:root
+    permissions: '0600'
+
+  - path: /etc/letsencrypt/live/teleport-gcp.thgaccess.com/fullchain.pem
+    encoding: b64
+    content: ${fullchain}
+    owner: root:root
+    permissions: '0600'
+
+  - path: /var/lib/cloud/instance/scripts/bootstrap.sh
+    content: |
+        #!/bin/bash -xe
+        sleep 30
+        sudo apt update
+        sudo apt -y upgrade
+        source /etc/profile.d/thg-env-vars.sh
+
+        #Install pip, ansible & requirements
+        curl -L https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 -o /tmp/jq
+        mv /tmp/jq /usr/bin
+        chmod +x /usr/bin/jq
+
+        META=$(curl -H "Metadata-Flavor: Google" -s http://metadata.google.internal/computeMetadata/v1/instance/attributes/?recursive=true&alt=json | jq -r '.meta')
+        PIP_VERSION=$(echo $META | jq -r '.pip')
+        DEPENDENCIES=$(echo $META | jq -rj '.dependencies' | jq -j 'keys[] as $k | "\($k)==\(.[$k]) "')
+        INFRA_BUILD_NUMBER=$(echo $META | jq -rj '.infra_version')
+        PLAYBOOK_DIR=$(echo $META | jq -rj '.playbook_dir')
+        PLAYBOOK=$(echo $META | jq -rj '.playbook')
+        ENV_VARS=$(echo $META | jq -rj '.env_vars_file')
+
+        curl https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
+        python3 /tmp/get-pip.py "pip==$PIP_VERSION"
+        pip3 install --ignore-installed --upgrade $DEPENDENCIES
+
+        cd /tmp
+        curl -LJO -H "Authorization: token $GITHUB_API_TOKEN" "https://github.com/UK2Group/teleport-on-gcp/archive/v$INFRA_BUILD_NUMBER.tar.gz" 
+        tar -zxvf /tmp/teleport-on-gcp-$INFRA_BUILD_NUMBER.tar.gz
+
+        cd "/tmp/teleport-on-gcp-$INFRA_BUILD_NUMBER/ansible/playbooks/$PLAYBOOK_DIR"
+        ansible-playbook $PLAYBOOK -i /tmp/teleport-on-gcp-$INFRA_BUILD_NUMBER/ansible/inventories/openstack.yaml \
+        --extra-vars="@/tmp/teleport-on-gcp-$INFRA_BUILD_NUMBER/ansible/environment_vars/$ENV_VARS"
+    owner: root:root
+    permissions: '0755'

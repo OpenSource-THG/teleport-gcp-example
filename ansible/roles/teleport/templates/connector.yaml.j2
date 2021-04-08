@@ -1,0 +1,15 @@
+kind: oidc
+metadata:
+  name: keycloak-os
+spec:
+  claims_to_roles:
+  - claim: aud
+    roles:
+    - admin
+    value: teleport-gcp
+  client_id: teleport-gcp
+  client_secret: 1c291f56-f61a-4876-b9ec-3eb81898c348
+  display: Keycloak
+  issuer_url: https://keycloak-os.{{ domain }}/auth/realms/teleport-os
+  redirect_url: https://teleport-gcp.{{ domain }}:3080/v1/webapi/oidc/callback
+version: v2

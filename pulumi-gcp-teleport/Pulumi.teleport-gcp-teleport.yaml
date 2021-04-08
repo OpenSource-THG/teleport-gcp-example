@@ -1,0 +1,4 @@
+config:
+  gcp:project: <your gcp project id>
+  gcp:region: europe-west2
+  teleport-gcp-teleport:infra_version: 0.29.0

@@ -1,0 +1,5 @@
+auth_token: <your auth token>
+cluster_token: <your cluster token>
+domain: <your-domain eg. example.com>
+gcp_project_id: <your gcp project id>
+teleport_version: 5.2.0
